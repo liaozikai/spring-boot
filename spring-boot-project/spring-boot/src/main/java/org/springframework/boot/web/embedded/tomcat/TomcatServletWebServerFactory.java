@@ -174,6 +174,7 @@ public class TomcatServletWebServerFactory extends AbstractServletWebServerFacto
 		if (this.disableMBeanRegistry) {
 			Registry.disableRegistry();
 		}
+		// 首次断点进来，下面的逻辑就不细究了，就是设置tomcat的连接器，host和配置引擎的内容。
 		Tomcat tomcat = new Tomcat();
 		File baseDir = (this.baseDirectory != null) ? this.baseDirectory : createTempDir("tomcat");
 		tomcat.setBaseDir(baseDir.getAbsolutePath());
@@ -187,7 +188,16 @@ public class TomcatServletWebServerFactory extends AbstractServletWebServerFacto
 		for (Connector additionalConnector : this.additionalTomcatConnectors) {
 			tomcat.getService().addConnector(additionalConnector);
 		}
+		// 首次断点进来，一般prepare为前缀的，都感觉很重要。代码也不细究了，就是对context的一段骚操作。
+		// 值得特别注意的是，如果我们想要设置tomcat或jetty服务的相关属性，那么就可以通过下面的准备阶段，知道应该去哪里设置和怎么设置
 		prepareContext(tomcat.getHost(), initializers);
+		// 下面也是一顿骚操作。构造web服务器，然后初始化。值得注意的是，控制台关于tomcat的相关信息，也就是这个时候输出的，内容如下：
+		// 2019-11-17 14:52:06.856  INFO 21980 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 8080 (http)
+		//2019-11-17 14:52:30.928  INFO 21980 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+		//2019-11-17 14:52:30.931  INFO 21980 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.16]
+		//2019-11-17 14:52:30.982  INFO 21980 --- [           main] o.a.catalina.core.AprLifecycleListener   : The APR based Apache Tomcat Native library which allows optimal performance in production environments was not found on the java.library.path: [C:\Program Files\Java\jdk1.8.0_201\bin;C:\Windows\Sun\Java\bin;C:\Windows\system32;C:\Windows;C:\Program Files (x86)\Common Files\Oracle\Java\javapath;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\Users\Administrator\AppData\Local\Microsoft\WindowsApps;;.]
+		//2019-11-17 14:52:31.663  INFO 21980 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+		//2019-11-17 14:52:31.664  INFO 21980 --- [           main] o.s.web.context.ContextLoader            : Root WebApplicationContext: initialization completed in 350349 ms
 		return getTomcatWebServer(tomcat);
 	}
 

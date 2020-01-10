@@ -130,7 +130,20 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 	 */
 	@Override
 	protected void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) {
+		// 首次断点进入这里。这里就是把该servletContextAwareProcessor加到后置处理器并设置到beanFactory而已
 		beanFactory.addBeanPostProcessor(new WebApplicationContextServletContextAwareProcessor(this));
+		// 首次断点进入这里，这里已经有挺多个忽略的依赖接口了，如下：
+		// 0 = {Class@3122} "interface org.springframework.context.EnvironmentAware"
+		//1 = {Class@1638} "interface org.springframework.context.ApplicationContextAware"
+		//2 = {Class@5141} "interface org.springframework.web.context.ServletContextAware"
+		//3 = {Class@1734} "interface org.springframework.beans.factory.BeanClassLoaderAware"
+		//4 = {Class@4558} "interface org.springframework.context.ApplicationEventPublisherAware"
+		//5 = {Class@5087} "interface org.springframework.beans.factory.BeanNameAware"
+		//6 = {Class@3047} "interface org.springframework.context.ResourceLoaderAware"
+		//7 = {Class@4628} "interface org.springframework.context.MessageSourceAware"
+		//8 = {Class@1735} "interface org.springframework.beans.factory.BeanFactoryAware"
+		//9 = {Class@1963} "interface org.springframework.context.EmbeddedValueResolverAware"
+		// 然后就是要加上下面的两个了
 		beanFactory.ignoreDependencyInterface(ServletContextAware.class);
 		registerWebApplicationScopes();
 	}
@@ -148,8 +161,10 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 
 	@Override
 	protected void onRefresh() {
+		// 特别特别注意，这里是由spring在初始化过程中调用到springboot类的。
 		super.onRefresh();
 		try {
+			// 首次断点进来，主要是注意这里的代码
 			createWebServer();
 		}
 		catch (Throwable ex) {
@@ -173,9 +188,11 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 	}
 
 	private void createWebServer() {
+		// 首次断点调用进来，一开始webServer和servletContext都为空的
 		WebServer webServer = this.webServer;
 		ServletContext servletContext = getServletContext();
 		if (webServer == null && servletContext == null) {
+			// 首次断点调用进来，由于都为空，所以创建了一个web服务，由于采取默认的方式，所以调用的是TomcatServletWebServerFactory的方法
 			ServletWebServerFactory factory = getWebServerFactory();
 			this.webServer = factory.getWebServer(getSelfInitializer());
 		}
@@ -238,7 +255,23 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 
 	private void registerWebApplicationScopes() {
 		ExistingWebApplicationScopes existingScopes = new ExistingWebApplicationScopes(getBeanFactory());
+		// 首次断点进来，这里调用到了WebApplicationContextUtils的方法，是spring中的，里面的注释写在这里
+		// 其中的代码：
+		// beanFactory.registerResolvableDependency(ServletRequest.class, new WebApplicationContextUtils.RequestObjectFactory());
+		// beanFactory.registerResolvableDependency(ServletResponse.class, new WebApplicationContextUtils.ResponseObjectFactory());
+		// beanFactory.registerResolvableDependency(HttpSession.class, new WebApplicationContextUtils.SessionObjectFactory());
+		// beanFactory.registerResolvableDependency(WebRequest.class, new WebApplicationContextUtils.WebRequestObjectFactory());
+		// 的操作是一样的，就是注册依赖放到beanFactory中resolvableDependencies中而已。那么首次断点调用后发现所有的依赖是
+		// 0 = {ConcurrentHashMap$MapEntry@5484} "interface javax.servlet.ServletRequest" -> "Current HttpServletRequest"
+		//1 = {ConcurrentHashMap$MapEntry@5485} "interface org.springframework.context.ApplicationContext" -> "org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext@1be2019a, started on Sat Nov 16 09:05:44 SGT 2019"
+		//2 = {ConcurrentHashMap$MapEntry@5486} "interface org.springframework.core.io.ResourceLoader" -> "org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext@1be2019a, started on Sat Nov 16 09:05:44 SGT 2019"
+		//3 = {ConcurrentHashMap$MapEntry@5487} "interface org.springframework.beans.factory.BeanFactory" -> "org.springframework.beans.factory.support.DefaultListableBeanFactory@3e2055d6: defining beans [org.springframework.context.annotation.internalConfigurationAnnotationProcessor,org.springframework.context.annotation.internalAutowiredAnnotationProcessor,org.springframework.context.annotation.internalCommonAnnotationProcessor,org.springframework.context.event.internalEventListenerProcessor,org.springframework.context.event.internalEventListenerFactory,springmvctheoryApplication]; root of factory hierarchy"
+		//4 = {ConcurrentHashMap$MapEntry@5488} "interface org.springframework.context.ApplicationEventPublisher" -> "org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext@1be2019a, started on Sat Nov 16 09:05:44 SGT 2019"
+		//5 = {ConcurrentHashMap$MapEntry@5489} "interface javax.servlet.http.HttpSession" -> "Current HttpSession"
+		//6 = {ConcurrentHashMap$MapEntry@5490} "interface javax.servlet.ServletResponse" -> "Current HttpServletResponse"
+		//7 = {ConcurrentHashMap$MapEntry@5491} "interface org.springframework.web.context.request.WebRequest" -> "Current ServletWebRequest"
 		WebApplicationContextUtils.registerWebApplicationScopes(getBeanFactory());
+		// 这里是直接跳过
 		existingScopes.restore();
 	}
 

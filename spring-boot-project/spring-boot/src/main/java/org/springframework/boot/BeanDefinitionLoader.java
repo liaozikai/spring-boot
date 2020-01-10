@@ -153,6 +153,9 @@ class BeanDefinitionLoader {
 			GroovyBeanDefinitionSource loader = BeanUtils.instantiateClass(source, GroovyBeanDefinitionSource.class);
 			load(loader);
 		}
+		// 判断是否为组件，断点进入了这里，source是当前应用
+		// 进入AnnotatedBeanDefinitionReader，调用registerBean方法
+		// 调用doRegisterBean的方法，具体的在spring代码中查看，我是通过断点进去查看的
 		if (isComponent(source)) {
 			this.annotatedReader.register(source);
 			return 1;
